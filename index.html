@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Termômetro da Alienação</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root{
+    --bg:#0b0d12; --surface:#15171f; --surface-2:#1d2029; --border:#2b2f3a;
+    --fg:#eceef1; --fg-dim:#9a9ca6;
+    --c-construcao:#ffb020; --c-docencia:#4da6ff; --c-outra:#b983ff;
+    --good:#35d07f;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html,body{min-height:100%; margin:0;}
+  body{
+    background:var(--bg); color:var(--fg);
+    font-family:'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    padding:20px max(16px, env(safe-area-inset-left,0px)) max(24px, env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-right,0px));
+    display:flex; justify-content:center;
+  }
+  #app{width:100%; max-width:720px;}
+
+  .kicker{
+    font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--fg-dim); margin-bottom:10px; text-align:center;
+  }
+  h1{font-size:clamp(26px,6.5vw,38px); margin:0 0 10px; text-align:center; line-height:1.05;}
+  p.lead{
+    font-size:clamp(13px,3.2vw,16px); line-height:1.55; color:var(--fg-dim);
+    text-align:center; max-width:560px; margin:0 auto 24px;
+  }
+
+  .categories{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:22px;}
+  .cat-btn{
+    font-family:inherit; font-size:14px; font-weight:700; padding:12px 18px;
+    border-radius:30px; border:2px solid var(--border); background:var(--surface-2); color:var(--fg);
+    cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  .cat-btn .swatch{width:10px; height:10px; border-radius:50%;}
+  .cat-btn[data-cat="construcao"] .swatch{background:var(--c-construcao);}
+  .cat-btn[data-cat="docencia"] .swatch{background:var(--c-docencia);}
+  .cat-btn[data-cat="outra"] .swatch{background:var(--c-outra);}
+  .cat-btn.active[data-cat="construcao"]{border-color:var(--c-construcao); background:#2a2008;}
+  .cat-btn.active[data-cat="docencia"]{border-color:var(--c-docencia); background:#0a2338;}
+  .cat-btn.active[data-cat="outra"]{border-color:var(--c-outra); background:#231433;}
+
+  .hint{
+    text-align:center; font-size:13px; color:var(--fg-dim); margin-bottom:14px; min-height:18px;
+  }
+  .hint.ready{color:var(--good);}
+
+  .scale-labels{
+    display:flex; justify-content:space-between; font-family:'JetBrains Mono', ui-monospace, monospace;
+    font-size:11px; letter-spacing:.06em; color:var(--fg-dim); margin-bottom:8px; text-transform:uppercase;
+  }
+  .scale-labels .left{color:var(--good);}
+  .scale-labels .right{color:#ff6b6b;}
+
+  #scale{
+    display:grid; grid-template-columns:repeat(10,1fr); gap:4px; margin-bottom:28px;
+  }
+  .cell-btn{
+    aspect-ratio:1; border-radius:8px; border:1px solid var(--border); background:var(--surface-2);
+    cursor:pointer; padding:0;
+  }
+  .cell-btn:active{transform:scale(.94);}
+  .cell-btn.flash{animation:flash .4s;}
+  @keyframes flash{0%{box-shadow:0 0 0 3px #fff3;} 100%{box-shadow:0 0 0 0 transparent;}}
+
+  .heatmap-title{
+    font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--fg-dim); margin-bottom:10px;
+  }
+  .heat-row{display:grid; grid-template-columns:86px repeat(10,1fr); gap:4px; align-items:center; margin-bottom:5px;}
+  .heat-label{font-size:11px; color:var(--fg-dim); text-align:right; padding-right:6px; line-height:1.2;}
+  .heat-cell{
+    aspect-ratio:1; border-radius:6px; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#0b0d12; font-weight:700;
+  }
+
+  .sync{
+    text-align:center; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px;
+    color:var(--fg-dim); margin-top:18px; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .sync .dot{width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.3;}}
+
+  .credit{text-align:center; font-size:11px; color:#5b5e68; max-width:560px; margin:22px auto 0; line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="kicker">Mostra Interativa · Se²p²in</div>
+  <h1>Termômetro da Alienação</h1>
+  <p class="lead">
+    Escolha a categoria mais próxima da sua experiência e toque no ponto da régua que representa
+    como você sente seu trabalho ou estudo hoje, entre o reconhecimento pleno do processo
+    e a perda de controle sobre ele.
+  </p>
+
+  <div class="categories">
+    <button class="cat-btn" data-cat="construcao" onclick="selectCategory('construcao')">
+      <span class="swatch"></span>Construção Civil
+    </button>
+    <button class="cat-btn" data-cat="docencia" onclick="selectCategory('docencia')">
+      <span class="swatch"></span>Docência
+    </button>
+    <button class="cat-btn" data-cat="outra" onclick="selectCategory('outra')">
+      <span class="swatch"></span>Outra profissão
+    </button>
+  </div>
+
+  <div class="hint" id="hint">Toque numa categoria acima para começar</div>
+
+  <div class="scale-labels">
+    <span class="left">Trabalho concreto</span>
+    <span class="right">Trabalho alienado</span>
+  </div>
+  <div id="scale"></div>
+
+  <div class="heatmap-title">Heatmap coletivo — todas as respostas de hoje</div>
+  <div id="heatmap"></div>
+
+  <div class="sync"><span class="dot"></span><span id="syncText">sincronizando...</span></div>
+
+  <div class="credit">
+    Baseado no resumo "Entre o Concreto e o Alienado: a Fragmentação do Trabalho na Construção Civil
+    e na Docência Contemporâneas" — Aline Silva Lima, Francisco Canindé Carolino de Souza,
+    Francilene Francisco Tonetto de Faria, Gabriela de Almeida Ribeiro
+  </div>
+</div>
+
+<script>
+  const API = 'https://api.countapi.xyz';
+  const NAMESPACE = 'lila-sepin2026-termometro';
+  const CATEGORIES = ['construcao', 'docencia', 'outra'];
+  const CAT_LABELS = {construcao: 'Construção Civil', docencia: 'Docência', outra: 'Outra profissão'};
+  const CAT_COLORS = {
+    construcao: [255, 176, 32],
+    docencia: [77, 166, 255],
+    outra: [185, 131, 255]
+  };
+  const BINS = 10;
+
+  let selectedCategory = null;
+  let counts = {}; // counts['construcao'][0..9]
+  CATEGORIES.forEach(c => { counts[c] = new Array(BINS).fill(0); });
+
+  function keyFor(cat, bin){ return 'bin' + bin + '-' + cat; }
+
+  function selectCategory(cat){
+    selectedCategory = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === cat);
+    });
+    const hint = document.getElementById('hint');
+    hint.textContent = 'Agora toque no ponto da régua que representa você';
+    hint.classList.add('ready');
+  }
+
+  function buildScale(){
+    const scale = document.getElementById('scale');
+    scale.innerHTML = '';
+    for(let i = 0; i < BINS; i++){
+      const btn = document.createElement('button');
+      btn.className = 'cell-btn';
+      btn.dataset.bin = i;
+      btn.addEventListener('click', () => vote(i, btn));
+      scale.appendChild(btn);
+    }
+  }
+
+  function vote(bin, btnEl){
+    if(!selectedCategory){
+      const hint = document.getElementById('hint');
+      hint.textContent = 'Escolha uma categoria primeiro';
+      hint.classList.remove('ready');
+      return;
+    }
+    btnEl.classList.add('flash');
+    setTimeout(() => btnEl.classList.remove('flash'), 400);
+
+    // atualização otimista local
+    counts[selectedCategory][bin] += 1;
+    renderHeatmap();
+
+    fetch(`${API}/hit/${NAMESPACE}/${keyFor(selectedCategory, bin)}`).catch(() => {});
+
+    document.getElementById('hint').textContent = 'Obrigado! Pode votar de novo quando quiser.';
+  }
+
+  function renderHeatmap(){
+    const wrap = document.getElementById('heatmap');
+    wrap.innerHTML = '';
+    let maxCount = 1;
+    CATEGORIES.forEach(c => counts[c].forEach(v => { if(v > maxCount) maxCount = v; }));
+
+    CATEGORIES.forEach(cat => {
+      const row = document.createElement('div');
+      row.className = 'heat-row';
+      const label = document.createElement('div');
+      label.className = 'heat-label';
+      label.textContent = CAT_LABELS[cat];
+      row.appendChild(label);
+      for(let i = 0; i < BINS; i++){
+        const v = counts[cat][i];
+        const cell = document.createElement('div');
+        cell.className = 'heat-cell';
+        const alpha = v === 0 ? 0.08 : Math.min(1, 0.25 + 0.75 * (v / maxCount));
+        const [r,g,b] = CAT_COLORS[cat];
+        cell.style.background = `rgba(${r},${g},${b},${alpha})`;
+        if(v > 0) cell.textContent = v;
+        row.appendChild(cell);
+      }
+      wrap.appendChild(row);
+    });
+  }
+
+  async function syncCounts(){
+    try{
+      const keys = [];
+      CATEGORIES.forEach(cat => { for(let i = 0; i < BINS; i++) keys.push([cat, i]); });
+      const results = await Promise.all(
+        keys.map(([cat, i]) => fetch(`${API}/get/${NAMESPACE}/${keyFor(cat, i)}`).then(r => r.json()).catch(() => ({value: null})))
+      );
+      let total = 0;
+      results.forEach((res, idx) => {
+        const [cat, i] = keys[idx];
+        if(res && typeof res.value === 'number'){
+          counts[cat][i] = res.value;
+          total += res.value;
+        }
+      });
+      renderHeatmap();
+      document.getElementById('syncText').textContent = total + ' respostas coletivas registradas';
+    }catch(e){
+      document.getElementById('syncText').textContent = 'sincronização indisponível — mostrando respostas locais';
+    }
+  }
+
+  buildScale();
+  renderHeatmap();
+  syncCounts();
+  setInterval(syncCounts, 12000);
+</script>
+</body>
+</html>
